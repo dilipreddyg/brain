@@ -7,11 +7,13 @@ from logger import Logger
 
 class sdtp(object):
     def __init__(self, train_data, test_data, epochs, lr_inh1, lr_h1h2, lr_h2h3, lr_h3dout, lr_douth3, lr_h3h2, lr_h2h1):
-
+        print("initialized? ")
         self.logger = Logger('./my_logs1')
 
         self.train_data = train_data
         self.test_data = test_data
+
+        print((self.train_data.dataset))
 
         self.model_forward_in_h1 = networks.forward_in_h1()
         self.model_forward_h1_h2 = networks.forward_h1_h2()
@@ -25,7 +27,7 @@ class sdtp(object):
         self.lr_inh1 = lr_inh1
         self.lr_h1h2 = lr_h1h2
         self.lr_h2h3 = lr_h2h3
-        self.lr_h3out = lr_h3dout
+        self.lr_h3dout = lr_h3dout
         self.lr_douth3 = lr_douth3
         self.lr_h3h2 = lr_h3h2
         self.lr_h2h1 = lr_h2h1
@@ -35,7 +37,7 @@ class sdtp(object):
         self.optimizer_in_h1 = torch.optim.Adam(list(self.model_forward_in_h1.parameters()), lr=self.lr_inh1)
         self.optimizer_h1_h2 = torch.optim.Adam(list(self.model_forward_h1_h2.parameters()), lr=self.lr_h1h2)
         self.optimizer_h2_h3 = torch.optim.Adam(list(self.model_forward_h2_h3.parameters()), lr=self.lr_h2h3)
-        self.optimizer_h3_dout = torch.optim.Adam(list(self.model_forward_h3_dout.parameters()), lr=self.lr_h3_dout)
+        self.optimizer_h3_dout = torch.optim.Adam(list(self.model_forward_h3_dout.parameters()), lr=self.lr_h3dout)
         self.optimizer_dout_h3 = torch.optim.Adam(list(self.model_backward_dout_h3.parameters()), lr=self.lr_douth3)
         self.optimizer_h3_h2 = torch.optim.Adam(list(self.model_backward_h3_h2.parameters()), lr=self.lr_h3h2)
         self.optimizer_h2_h1 = torch.optim.Adam(list(self.model_backward_h2_h1.parameters()), lr=self.lr_h2h1)
@@ -50,7 +52,7 @@ class sdtp(object):
 
         self.loss1, self.loss2, self.loss3, self.forward_loss1, self.forward_loss2, self.forward_loss3, self.forward_loss4 = 0,0,0,0,0,0,0
 
-        if torch.cude.is_available():
+        if torch.cuda.is_available():
             self.device = torch.device("cuda")
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
         else:
@@ -100,9 +102,11 @@ class sdtp(object):
         # self.h1_inverse = Variable(torch.FloatTensor(self.h1_inverse))
         # self.h1_inverse = self.h1_inverse.to(self.device)
 
+        print("hello1")
         for epoch in range(1, epochs + 1):
-            do_train(epoch)
-            do_test(epoch)
+            print("hello2")
+            self.do_train(epoch)
+            self.do_test(epoch)
 
 
 
