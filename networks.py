@@ -102,3 +102,28 @@ class backward_h2_h1(nn.Module):
         x = (self.linear2(x))
 
         return x
+
+class simple_forward(nn.Module):
+    def __init__(self):
+        super(simple_forward, self).__init__()
+        din = 784
+        num_h1 = 1024
+        num_h2 = 512
+        num_h3 = 100
+        dout = 10
+
+        self.linear1 = nn.Linear(din, num_h1)
+        self.linear2 = nn.Linear(num_h1, num_h2)
+        self.linear3 = nn.Linear(num_h2, num_h3)
+        self.linear4 = nn.Linear(num_h3, dout)
+
+    def forward(self, x):
+        x = x.view(-1, 28*28)
+        x = Variable(x.float())
+        x = F.relu(self.linear1(x))
+        x = F.relu(self.linear2(x))
+        x = F.relu(self.linear3(x))
+        x = F.relu(self.linear4(x))
+        x = F.log_softmax(x, dim = 1)
+
+        return x
