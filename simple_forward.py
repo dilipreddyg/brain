@@ -20,9 +20,9 @@ class simple_forward(object):
         self.num_h2 = 512
         self.num_h1 = 1024
 
-        self.model_simple = networks.simple_forward
+        self.model_simple = networks.simple_forward()
         
-        self.lr = 1e-3
+        self.lr = 1e-4
 
         self.optimizer = torch.optim.Adam(list(self.model_simple.parameters()), lr=self.lr)
        
@@ -55,11 +55,11 @@ class simple_forward(object):
         self.model_simple.train()
         for batch_idx, (data, target) in enumerate(self.train_data):
             data, target = data.to(self.device), target.to(self.device)
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             output = self.model_simple(data)
             loss = F.nll_loss(output, target)
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
 
     def do_test(self, epoch):
 
@@ -68,11 +68,12 @@ class simple_forward(object):
         correct = 0
         with torch.no_grad():
             for data, target in self.test_data:
-                data, target = data.to(device), target.to(device)
+                data, target = data.to(self.device), target.to(self.device)
                 output = self.model_simple(data)
                 test_loss += F.nll_loss(output, target, reduction='sum').item()
                 pred = output.max(1, keepdim=True)[1]
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
-        test_loss /= len(test_loader.dataset)
+        test_loss /= len(self.test_data.dataset)
+        print("test correct = ", correct)
         print("test loss is" , test_loss)

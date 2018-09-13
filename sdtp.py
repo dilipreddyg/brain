@@ -80,7 +80,7 @@ class sdtp(object):
         for epoch in range(1, epochs + 1):
             self.do_train(epoch)
             print(" epoch training done", epoch)
-            self.do_test(epoch)
+            #self.do_test(epoch)
 
 
     def forward_propagate(self):
