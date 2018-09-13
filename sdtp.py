@@ -48,15 +48,6 @@ class sdtp(object):
         self.optimizer_dout_h3 = torch.optim.Adam(list(self.model_backward_dout_h3.parameters()), lr=self.lr_douth3)
         self.optimizer_h3_h2 = torch.optim.Adam(list(self.model_backward_h3_h2.parameters()), lr=self.lr_h3h2)
         self.optimizer_h2_h1 = torch.optim.Adam(list(self.model_backward_h2_h1.parameters()), lr=self.lr_h2h1)
-
-        # self.h1_out = np.zeros((self.batch_size, self.num_h1))
-        # self.h2_out = np.zeros((self.batch_size, self.num_h2))
-        # self.h3_out = np.zeros((self.batch_size, self.num_h3))
-        # self.dout_out = np.zeros((self.batch_size, self.dout))
-        # self.h3_inverse = np.zeros((self.batch_size, self.num_h3))
-        # self.h2_inverse = np.zeros((self.batch_size, self.num_h2))
-        # self.h1_inverse = np.zeros((self.batch_size, self.num_h1))
-
         self.loss1, self.loss2, self.loss3, self.forward_loss1, self.forward_loss2, self.forward_loss3, self.forward_loss4 = 0,0,0,0,0,0,0
 
         if torch.cuda.is_available():
@@ -86,55 +77,19 @@ class sdtp(object):
         self.model_backward_h3_h2.to(self.device)
         self.model_backward_h2_h1.to(self.device)
 
-
-
-        # self.h1_out = Variable(torch.FloatTensor(self.h1_out))
-        # self.h1_out = self.h1_out.to(self.device)
-
-        # self.h2_out = Variable(torch.FloatTensor(self.h2_out))
-        # self.h2_out = self.h2_out.to(self.device)
-
-        # self.h3_out = Variable(torch.FloatTensor(self.h3_out))
-        # self.h3_out = self.h3_out.to(self.device)
-
-        # self.dout_out = Variable(torch.FloatTensor(self.dout_out))
-        # self.dout_out = self.dout_out.to(self.device)
-
-        # self.h3_inverse = Variable(torch.FloatTensor(self.h3_inverse))
-        # self.h3_inverse = self.h3_inverse.to(self.device)
-
-        # self.h2_inverse = Variable(torch.FloatTensor(self.h2_inverse))
-        # self.h2_inverse = self.h2_inverse.to(self.device)
-
-        # self.h1_inverse = Variable(torch.FloatTensor(self.h1_inverse))
-        # self.h1_inverse = self.h1_inverse.to(self.device)
-
-        print("hello1")
         for epoch in range(1, epochs + 1):
-            print("hello2")
             self.do_train(epoch)
-            print("first epoch training done")
+            print(" epoch training done", epoch)
             self.do_test(epoch)
 
 
-
-
     def forward_propagate(self):
-        #print(self.input_batch.size())
         self.h1_out = self.model_forward_in_h1(self.input_batch)
-        #print(self.h1_out.size())
         self.h2_out = self.model_forward_h1_h2(self.h1_out)
-        #print(self.h2_out.size())
         self.h3_out = self.model_forward_h2_h3(self.h2_out)
-        #print(self.h3_out.size())
         self.dout_out = self.model_forward_h3_dout(self.h3_out)
-        # print(self.dout_out.size())
-        # self.values, self.indices = torch.max(self.dout_out, 1)
 
     def compute_inverses(self):
-        # print(self.target_batch.size())
-        # self.model_backward_dout_h3(self.target_batch)
-        # self.h3_inverse = self.h3_out + self.model_backward_dout_h3(self.target_batch)
         self.h3_inverse = self.h3_out - self.model_backward_dout_h3(self.dout_out) + self.model_backward_dout_h3(self.target_batch) # is this argmin same as tartget batch?
         self.h2_inverse = self.h2_out - self.model_backward_h3_h2(self.h3_out) + self.model_backward_h3_h2(self.h3_inverse)
         self.h1_inverse = self.h1_out - self.model_backward_h2_h1(self.h2_out) + self.model_backward_h2_h1(self.h2_inverse)
@@ -160,7 +115,8 @@ class sdtp(object):
         self.forward_loss1 = self.L2loss(self.h1_out, self.h1_inverse) #just notation ambiguity. here h1_inverse is the inverse of h2. which is to be compared with h1 output. so, we are fine
         self.forward_loss2 = self.L2loss(self.h2_out, self.h2_inverse)
         self.forward_loss3 = self.L2loss(self.h3_out, self.h3_inverse)
-        self.forward_loss4 = self.L2loss(self.dout_out, self.target_batch) #change this. this doesnt make sense
+        self.forward_loss4 = self.L2loss(self.dout_out, self.target_batch)
+        print(self.forward_loss4)
         
     def do_train(self, epoch):
         
@@ -234,17 +190,3 @@ class sdtp(object):
 
                 test_loss += self.forward_loss4
         test_loss = test_loss / len(self.test_data.dataset)
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -58,17 +58,14 @@ class forward_h3_dout(nn.Module):
         x = Variable(x.float())
         x = self.linear4(x)
         x = F.log_softmax(x, dim = 1)
-        # x = torch.max(x, 1) # not sure it completely makes sense
 
         return x
 
 class backward_dout_h3(nn.Module):
     def __init__(self):
         super(backward_dout_h3, self).__init__()
-        # num_h3 = 100
         num_h3 = 100
         dout = 10
-        # dout = 1
 
         self.linear4 = nn.Linear(dout, num_h3)
 
