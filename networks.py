@@ -1,4 +1,4 @@
-#import torch
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -12,6 +12,7 @@ class forward_in_h1(nn.Module):
         self.linear1 = nn.Linear(d_in, num_h1)
 
     def forward(self, x):
+        x = x.view(-1, 28*28)
         x = Variable(x.float())
         x = F.relu(self.linear1(x))
 
@@ -55,21 +56,26 @@ class forward_h3_dout(nn.Module):
 
     def forward(self, x):
         x = Variable(x.float())
+        x = self.linear4(x)
         x = F.log_softmax(x, dim = 1)
+        # x = torch.max(x, 1) # not sure it completely makes sense
 
         return x
 
 class backward_dout_h3(nn.Module):
     def __init__(self):
         super(backward_dout_h3, self).__init__()
+        # num_h3 = 100
         num_h3 = 100
         dout = 10
+        # dout = 1
 
         self.linear4 = nn.Linear(dout, num_h3)
 
     def forward(self, x):
+        x = x.view(-1, 10)
         x = Variable(x.float())
-        x = self.linear4(x)
+        x = F.relu(self.linear4(x))
 
         return x
 
