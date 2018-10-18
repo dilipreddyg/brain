@@ -6,21 +6,25 @@ import networks
 from logger import Logger
 import numpy as np
 from torch.autograd import Variable
+from tensorboardX import SummaryWriter
+import time
+
+
 
 
 class sdtp(object):
 	def __init__(self, train_data, test_data, epochs, lr_inh1, lr_h1h2, lr_h2h3, lr_h3dout, lr_douth3, lr_h3h2, lr_h2h1):
-		print("initialized? ")
-		self.logger = Logger('./my_logs1')
+
+		self.writer = SummaryWriter(log_dir='runs/'
+                               + 'sdtp' + '/' + epochs + '_' + lr_inh1 + '_' + lr_h1h2 + '_' + lr_h2h3 +'_' + lr_h3dout +'_' + lr_douth3 +'_' + lr_h3h2 +'_' + lr_h2h1 +'_' + sigma  + '_' + current_time)
 
 		self.train_data = train_data
 		self.test_data = test_data
+		self.sigma = sigma
 
 		self.num_h3 = 100
 		self.num_h2 = 512
 		self.num_h1 = 1024
-
-		print((self.train_data.dataset))
 
 		self.model_forward_in_h1 = networks.forward_in_h1()
 		self.model_forward_h1_h2 = networks.forward_h1_h2()
@@ -78,6 +82,7 @@ class sdtp(object):
 		self.model_backward_h3_h2.to(self.device)
 		self.model_backward_h2_h1.to(self.device)
 
+		epochs = 100
 		for epoch in range(1, epochs + 1):
 			self.do_train(epoch)
 			print(" epoch training done", epoch)
@@ -96,8 +101,8 @@ class sdtp(object):
 		self.h1_inverse = self.h1_out - self.model_backward_h2_h1(self.h2_out) + self.model_backward_h2_h1(self.h2_inverse)
 
 	def compute_inverse_losses(self):
-		mu, sigma = 0, 0.1
-		m = torch.distributions.Normal(mu, sigma)
+		mu = 0
+		m = torch.distributions.Normal(mu, self.sigma)
 
 		eps3 = m.sample((self.num_h3,))
 		h3_out_corrupt = self.h3_out + eps3
@@ -136,68 +141,38 @@ class sdtp(object):
 		self.forward_loss3.backward(retain_graph=True)
 		self.optimizer_h2_h3.step()
 				
-		# print(self.h3_out)
 		self.forward_loss4 = self.L2loss(self.dout_out, self.target_batch)
 		self.forward_loss4.backward(retain_graph=True)
 		self.optimizer_h3_dout.step()
-		# print(self.dout_out[0,:])
-		# print(self.target_batch[0,:])
-		# print(self.forward_loss4)
-
+		
 	def compute_final_loss(self):
 		self.forward_loss_final = self.L2loss(self.dout_out, self.target_batch.float())
 		
 	def do_train(self, epoch):
 		
-		# self.model_forward_in_h1.train()
-		# self.model_forward_h1_h2.train()
-		# self.model_forward_h2_h3.train()
-		# self.model_forward_h3_dout.train()
-		# self.model_backward_dout_h3.train()
-		# self.model_backward_h3_h2.train()
-		# self.model_backward_h2_h1.train()
+		self.model_forward_in_h1.train()
+		self.model_forward_h1_h2.train()
+		self.model_forward_h2_h3.train()
+		self.model_forward_h3_dout.train()
+		self.model_backward_dout_h3.train()
+		self.model_backward_h3_h2.train()
+		self.model_backward_h2_h1.train()
 
 		for batch_idx, (inputs, targets) in enumerate(self.train_data):
 			self.input_batch = inputs.to(self.device)
 			targets = np.asarray(targets)
-			# print(targets.shape)
-			# print(targets[0])
-			# print(targets.shape)
+
 			if targets.shape[0] == 64:
 				self.target_batch = np.zeros((64, 10))
 				for loll in range(64):
 					self.target_batch[loll, targets[loll]] = 1
 				self.target_batch = Variable(torch.FloatTensor(self.target_batch))
 				self.target_batch = self.target_batch.to(self.device)
-				# print(self.target_batch[0,:])
-
-				# self.optimizer_in_h1.zero_grad()
-				# self.optimizer_h1_h2.zero_grad()
-				# self.optimizer_h2_h3.zero_grad()
-				# self.optimizer_h3_dout.zero_grad()
-				# self.optimizer_dout_h3.zero_grad()
-				# self.optimizer_h3_h2.zero_grad()
-				# self.optimizer_h2_h1.zero_grad()
-
+				
 				self.forward_propagate()
 				self.compute_inverses()
 				self.compute_inverse_losses()
 				self.compute_forward_losses()
-
-				# self.loss3.backward(retain_graph=True)
-				# self.optimizer_dout_h3.step()
-				# self.loss2.backward(retain_graph=True)
-				# self.optimizer_h3_h2.step()
-				# self.loss1.backward(retain_graph=True)
-				# self.optimizer_h2_h1.step()
-				# self.forward_loss1.backward(retain_graph=True)
-				# self.optimizer_in_h1.step()
-				# self.forward_loss2.backward(retain_graph=True)
-				# self.optimizer_h1_h2.step()
-				# self.forward_loss3.backward(retain_graph=True)
-				# self.optimizer_h2_h3.step()
-				# self.forward_loss4.backward(retain_graph=True)
-				# self.optimizer_h3_dout.step()
 
 	def do_test(self, epoch):
 

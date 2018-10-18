@@ -43,8 +43,8 @@ def main():
 					   ])),
 		batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-	sdtp(train_loader, test_loader, args.epochs, args.lr_inh1, args.lr_h1h2, args.lr_h2h3, args.lr_h3dout, args.lr_douth3, args.lr_h3h2, args.lr_h2h1)
-	# simple_forward(train_loader, test_loader, args.epochs)
+	# sdtp(train_loader, test_loader, args.epochs, args.lr_inh1, args.lr_h1h2, args.lr_h2h3, args.lr_h3dout, args.lr_douth3, args.lr_h3h2, args.lr_h2h1)
+	simple_forward(train_loader, test_loader, args.epochs)
 
 main()
 
