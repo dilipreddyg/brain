@@ -8,15 +8,20 @@ import numpy as np
 from torch.autograd import Variable
 from tensorboardX import SummaryWriter
 import time
+from datetime import datetime
+
 
 
 
 
 class sdtp(object):
-	def __init__(self, train_data, test_data, epochs, lr_inh1, lr_h1h2, lr_h2h3, lr_h3dout, lr_douth3, lr_h3h2, lr_h2h1):
+	def __init__(self, train_data, test_data, epochs, lr_inh1, lr_h1h2, lr_h2h3, lr_h3dout, lr_douth3, lr_h3h2, lr_h2h1, sigma):
 
+		current_time = datetime.now().strftime('%b%d_%H-%M-%S')
 		self.writer = SummaryWriter(log_dir='runs/'
-                               + 'sdtp' + '/' + epochs + '_' + lr_inh1 + '_' + lr_h1h2 + '_' + lr_h2h3 +'_' + lr_h3dout +'_' + lr_douth3 +'_' + lr_h3h2 +'_' + lr_h2h1 +'_' + sigma  + '_' + current_time)
+                               + 'sdtp' + '/' + str(epochs) + '_' + str(lr_inh1) + '_' + str(lr_h1h2)
+                                + '_' + str(lr_h2h3) +'_' + str(lr_h3dout) +'_' + str(lr_douth3) 
+                                + '_' + str(lr_h3h2) +'_' + str(lr_h2h1) +'_' + str(sigma)  + '_' + current_time)
 
 		self.train_data = train_data
 		self.test_data = test_data
@@ -196,8 +201,10 @@ class sdtp(object):
 				# self.compute_inverse_losses()
 				pred = self.dout_out.max(1, keepdim=True)[1]
 				correct += pred.eq(self.target_batch.view_as(pred)).sum().item()
+				
 				# self.compute_final_loss()
 
 				# test_loss += self.forward_loss_final
+			self.writer.add_scalar('test accuracy', float(correct) / 10000.0, epoch)
 		# test_loss = test_loss / len(self.test_data.dataset)
 		print(correct)
