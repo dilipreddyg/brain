@@ -22,7 +22,7 @@ def get_args():
 	parser.add_argument('-lrdouth3', '--lr_douth3', help="lr for forward_h3_dout", type=float, default=1e-3)
 	parser.add_argument('-lrh3h2', '--lr_h3h2', help="lr for forward_h3_dout", type=float, default=3e-4)
 	parser.add_argument('-lrh2h1', '--lr_h2h1', help="lr for forward_h3_dout", type=float, default=3e-4)
-	parser.add_argument('-sigma', '--sigma',help="noise for training inverse functions", type=float, default=0.1)
+	parser.add_argument('-sigma', '--sigma',help="noise for training inverse functions", type=float, default=0.5)
 	args = parser.parse_args()
 	args.cuda = not args.no_cuda and torch.cuda.is_available()
 
