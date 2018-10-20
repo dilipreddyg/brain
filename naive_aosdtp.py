@@ -33,8 +33,9 @@ class aosdtp(object):
 		self.model_forward_h1_h2 = networks.forward_h1_h2()
 		self.model_forward_h2_h3 = networks.forward_h2_h3()
 		self.model_forward_h3_dout = networks.forward_h3_dout()
+		self.model_forward_h3_z = networks.forward_h3_z()
 
-		self.model_backward_dout_h3 = networks.backward_dout_h3()
+		self.model_backward_h4_h3 = networks.backward_h4_h3()
 		self.model_backward_h3_h2 = networks.backward_h3_h2()
 		self.model_backward_h2_h1 = networks.backward_h2_h1()
 
@@ -42,7 +43,8 @@ class aosdtp(object):
 		self.lr_h1h2 = lr_h1h2
 		self.lr_h2h3 = lr_h2h3
 		self.lr_h3dout = lr_h3dout
-		self.lr_douth3 = lr_douth3
+		self.lr_h3z = lr_h3z
+		self.lr_h4h3 = lr_h4h3
 		self.lr_h3h2 = lr_h3h2
 		self.lr_h2h1 = lr_h2h1
 
@@ -52,7 +54,7 @@ class aosdtp(object):
 		self.optimizer_h1_h2 = torch.optim.Adam(list(self.model_forward_h1_h2.parameters()), lr=self.lr_h1h2)
 		self.optimizer_h2_h3 = torch.optim.Adam(list(self.model_forward_h2_h3.parameters()), lr=self.lr_h2h3)
 		self.optimizer_h3_dout = torch.optim.Adam(list(self.model_forward_h3_dout.parameters()), lr=self.lr_h3dout)
-		self.optimizer_dout_h3 = torch.optim.Adam(list(self.model_backward_dout_h3.parameters()), lr=self.lr_douth3)
+		self.optimizer_h4_h3 = torch.optim.Adam(list(self.model_backward_h4_h3.parameters()), lr=self.lr_h4h3)
 		self.optimizer_h3_h2 = torch.optim.Adam(list(self.model_backward_h3_h2.parameters()), lr=self.lr_h3h2)
 		self.optimizer_h2_h1 = torch.optim.Adam(list(self.model_backward_h2_h1.parameters()), lr=self.lr_h2h1)
 		self.loss1, self.loss2, self.loss3, self.forward_loss1, self.forward_loss2, self.forward_loss3, self.forward_loss4 = 0.0,0.0,0.0,0.0,0.0,0.0,0.0
@@ -71,7 +73,7 @@ class aosdtp(object):
 			self.model_forward_h1_h2 = nn.DataParallel(self.model_forward_h1_h2)
 			self.model_forward_h2_h3 = nn.DataParallel(self.model_forward_h2_h3)
 			self.model_forward_h3_dout = nn.DataParallel(self.model_forward_h3_dout)
-			self.model_backward_dout_h3 = nn.DataParallel(self.model_backward_dout_h3)
+			self.model_backward_h4_h3 = nn.DataParallel(self.model_backward_h4_h3)
 			self.model_backward_h3_h2 = nn.DataParallel(self.model_backward_h3_h2)
 			self.model_backward_h2_h1 = nn.DataParallel(self.model_backward_h2_h1)
 		else:
@@ -81,11 +83,11 @@ class aosdtp(object):
 		self.model_forward_h1_h2.to(self.device)
 		self.model_forward_h2_h3.to(self.device)
 		self.model_forward_h3_dout.to(self.device)
-		self.model_backward_dout_h3.to(self.device)
+		self.model_backward_h4_h3.to(self.device)
 		self.model_backward_h3_h2.to(self.device)
 		self.model_backward_h2_h1.to(self.device)
 
-		epochs = 100
+		# epochs = 100
 		for epoch in range(1, epochs + 1):
 			self.do_train(epoch)
 			print(" epoch training done", epoch)
@@ -97,9 +99,12 @@ class aosdtp(object):
 		self.h2_out = self.model_forward_h1_h2(self.h1_out)
 		self.h3_out = self.model_forward_h2_h3(self.h2_out)
 		self.dout_out = self.model_forward_h3_dout(self.h3_out)
+		self.z_out = self.model_forward_h3_z(self.h3_out)
 
 	def compute_inverses(self):
-		self.h3_inverse = self.h3_out - self.model_backward_dout_h3(self.dout_out) + self.model_backward_dout_h3(self.target_batch) # is this argmin same as tartget batch?
+		h4_full = torch.cat((self.dout_out, self.z_out))
+		h4_full_hat = torch.cat((self.target_batch, self.z_out))
+		self.h3_inverse = self.h3_out - self.model_backward_h4_h3(h4_full) + self.model_backward_h4_h3(h4_full_hat) # is this argmin same as tartget batch?
 		self.h2_inverse = self.h2_out - self.model_backward_h3_h2(self.h3_out) + self.model_backward_h3_h2(self.h3_inverse)
 		self.h1_inverse = self.h1_out - self.model_backward_h2_h1(self.h2_out) + self.model_backward_h2_h1(self.h2_inverse)
 
@@ -109,7 +114,7 @@ class aosdtp(object):
 
 		eps3 = m.sample((self.num_h3,))
 		h3_out_corrupt = self.h3_out + eps3
-		self.loss3 = self.L2loss(self.model_backward_dout_h3(self.model_forward_h3_dout(h3_out_corrupt)), self.h3_out)
+		self.loss3 = self.L2loss(self.model_backward_h4_h3(self.model_forward_h3_dout(h3_out_corrupt)), self.h3_out)
 		self.loss3.backward(retain_graph=True)
 		self.optimizer_dout_h3.step()
 				
@@ -157,7 +162,7 @@ class aosdtp(object):
 		self.model_forward_h1_h2.train()
 		self.model_forward_h2_h3.train()
 		self.model_forward_h3_dout.train()
-		self.model_backward_dout_h3.train()
+		self.model_backward_h4_h3.train()
 		self.model_backward_h3_h2.train()
 		self.model_backward_h2_h1.train()
 
@@ -183,7 +188,7 @@ class aosdtp(object):
 		self.model_forward_h1_h2.eval()
 		self.model_forward_h2_h3.eval()
 		self.model_forward_h3_dout.eval()
-		self.model_backward_dout_h3.eval()
+		self.model_backward_h4_h3.eval()
 		self.model_backward_h3_h2.eval()
 		self.model_backward_h2_h1.eval()
 
