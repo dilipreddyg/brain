@@ -61,6 +61,20 @@ class forward_h3_dout(nn.Module):
 
         return x
 
+class forward_h3_z(nn.Module):
+	def __init__(self):
+		super(forward_h3_z, self).__init__()
+		num_h3 = 100
+		num_z = 90
+		
+		self.linear4 = nn.Linear(num_h3, num_z)
+
+	def forward(self, x):
+		x = Variable(x.float())
+		x = F.relu(self.linear4(x))
+
+		return x
+
 class backward_dout_h3(nn.Module):
     def __init__(self):
         super(backward_dout_h3, self).__init__()
@@ -75,6 +89,25 @@ class backward_dout_h3(nn.Module):
         x = F.relu(self.linear4(x))
 
         return x
+
+class backward_h4_h3(nn.Module):
+	# note that h4 (final layer) is a concatenation of actual output and auxilary output
+	def __init__(self):
+		super(backward_h4_h3, self).__init__()
+		num_out = 10
+		num_z = 90
+		num_h3 = 100
+
+		self.linear4 = nn.Linear(num_out + num_z, num_h3)
+
+	def forward(self, x, z):
+		x = x.view(-1, num_out)
+		z = z.view(-1, num_z)
+		inp = torch.cat((x,z), dim=-1)
+		inp = Variable(inp.float())
+		inp = F.relu(self.linear4(inp))
+
+		return inp
 
 class backward_h3_h2(nn.Module):
     def __init__(self):
