@@ -9,12 +9,13 @@ from torch.autograd import Variable
 from tensorboardX import SummaryWriter
 import time
 from datetime import datetime
+from torchvision.utils import save_image
 
 
 
 
 
-class sdtp(object):
+class sdtp_generator(object):
 	def __init__(self, train_data, test_data, epochs, lr_inh1, lr_h1h2, lr_h2h3, lr_h3dout, lr_douth3, lr_h3h2, lr_h2h1, lr_h1din, sigma):
 
 		current_time = datetime.now().strftime('%b%d_%H-%M-%S')
@@ -27,6 +28,7 @@ class sdtp(object):
 		self.test_data = test_data
 		self.sigma = sigma
 
+		self.num_din = 784
 		self.num_h3 = 100
 		self.num_h2 = 512
 		self.num_h1 = 1024
@@ -107,9 +109,26 @@ class sdtp(object):
 		self.dout_out = self.model_forward_h3_dout(self.h3_out)
 
 	def compute_inverses(self):
+		self.input_batch_1d = self.input_batch.view(-1, 28*28)
+		# print(self.h3_out.size())
+		# print(self.model_backward_dout_h3(self.dout_out).size())
+		# print(self.model_backward_dout_h3(self.target_batch).size())
 		self.h3_inverse = self.h3_out - self.model_backward_dout_h3(self.dout_out) + self.model_backward_dout_h3(self.target_batch) # is this argmin same as tartget batch?
 		self.h2_inverse = self.h2_out - self.model_backward_h3_h2(self.h3_out) + self.model_backward_h3_h2(self.h3_inverse)
 		self.h1_inverse = self.h1_out - self.model_backward_h2_h1(self.h2_out) + self.model_backward_h2_h1(self.h2_inverse)
+		self.in_inverse = self.input_batch_1d - self.model_backward_h1_din(self.h1_out) + self.model_backward_h1_din(self.h1_inverse)
+
+	def compute_inverses_test(self):
+		# self.input_batch_1d = self.input_batch.view(-1, 28*28)
+		print(self.h3_out.size())
+		b1 = self.model_backward_dout_h3(self.dout_out)
+		b2 = self.model_backward_dout_h3(self.target_batch_arr)
+		print(b1.size())
+		print(b2.size())
+		self.h3_inverse = self.h3_out - b1 + b2 # is this argmin same as tartget batch?
+		self.h2_inverse = self.model_backward_h3_h2(self.h3_inverse)
+		self.h1_inverse = self.model_backward_h2_h1(self.h2_inverse)
+		self.in_inverse = self.model_backward_h1_din(self.h1_inverse)
 
 	def compute_inverse_losses(self):
 		mu = 0
@@ -132,6 +151,12 @@ class sdtp(object):
 		self.loss1 = self.L2loss(self.model_backward_h2_h1(self.model_forward_h1_h2(h1_out_corrupt)), self.h1_out)
 		self.loss1.backward(retain_graph=True)
 		self.optimizer_h2_h1.step()
+
+		eps0 = m.sample((self.num_din,))
+		in_out_corrupt = self.input_batch_1d + eps0
+		self.loss0 = self.L2loss(self.model_backward_h1_din(self.model_forward_in_h1(in_out_corrupt)), self.input_batch_1d)
+		self.loss0.backward(retain_graph=True)
+		self.optimizer_h1_din.step()
 
 	def compute_forward_losses(self):
 		
@@ -196,15 +221,27 @@ class sdtp(object):
 		self.model_backward_dout_h3.eval()
 		self.model_backward_h3_h2.eval()
 		self.model_backward_h2_h1.eval()
+		self.model_backward_h1_din.eval()
 
 		with torch.no_grad():
 			correct = 0
 			for inputs, targets in self.test_data:
 				self.input_batch = inputs.to(self.device)
 
+				self.target_batch_arr = np.zeros((1000, 10))
+				for loll in range(1000):
+					self.target_batch_arr[loll, targets[loll]] = 1
+				self.target_batch_arr = Variable(torch.FloatTensor(self.target_batch_arr))
+				self.target_batch_arr = self.target_batch_arr.to(self.device)
+
 				self.target_batch = targets.to(self.device)
 
 				self.forward_propagate()
+				self.compute_inverses_test()
+				self.in_inverse = self.in_inverse.view(1000, 1, 28, 28)
+				for loll in range(1000):
+					save_image(self.in_inverse[loll,:,:,:], '/home/sai/brain/imgs/'+str(loll)+'.png')
+
 				# self.compute_inverses()
 				# self.compute_inverse_losses()
 				pred = self.dout_out.max(1, keepdim=True)[1]
