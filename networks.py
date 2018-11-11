@@ -136,6 +136,20 @@ class backward_h2_h1(nn.Module):
 
         return x
 
+class backward_h1_din(nn.Module):
+    def __init__(self):
+        super(backward_h1_din, self).__init__()
+        num_din = 784
+        num_h1 = 1024
+
+        self.linear1 = nn.Linear(num_h1, num_din)
+
+    def forward(self, x):
+        x = Variable(x.float())
+        x = self.linear1(x)
+
+        return x
+
 class simple_forward(nn.Module):
     def __init__(self):
         super(simple_forward, self).__init__()
